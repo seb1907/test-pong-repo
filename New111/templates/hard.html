@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="styles.css">
+  <!-- <link href="landing.html"> -->
+  <link href="audio.html">
+  <script crossorigin="anonymous" src="script.js" type="module"></script>
+  <style>
+      *, *::after, *::before {
+  box-sizing: border-box;
+}
+body{
+  margin: 0;
+	background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+  animation: gradient 15s ease infinite;
+  overflow: hidden;
+  height: 100vh;
+  
+  background-size: 400% 400%; 
+  
+  /* foreground-color: hsl((hue), (saturation), 50%); */
+  
+  opacity: 70%;
+  
+}
+@keyframes gradient {
+	0% {
+		background-position: 0% 50%;
+	}
+	50% {
+		background-position: 100% 50%;
+	}
+	100% {
+		background-position: 0% 50%;
+	}
+}
+
+
+
+.paddle {
+  --position: 50;
+
+  position: absolute;
+  background-color: hsl(290, 37%, 13%);
+  top: calc(var(--position) * 1vh);
+  transform: translateY(-50%);
+  width: 1.5vh;
+  height: 14vh;
+  border-radius: 5px;
+  opacity: 1;
+}
+
+.paddle.left {
+  left: 1vw;
+  /* height: 15vh; */
+}
+
+.paddle.right {
+  right: 1vw;
+  /* height: 5vh; */
+}
+
+.ball {
+  --x: 50;
+  --y: 50;
+
+  position: absolute;
+  background-color: rgb(48, 44, 44);
+  left: calc(var(--x) * 1vw);
+  top: calc(var(--y) * 1vh);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  width: 3vh;
+  height: 3vh;
+}
+
+.score {
+  display: flex;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 7vh;
+  color:hsl(291, 32%, 29%);
+}
+
+
+.score > * {
+  flex-grow: 1;
+  flex-basis: 0;
+  padding: 0 2vh;
+  margin: 1vh 0;
+  opacity: .9;
+  
+}
+
+.score > :first-child {
+  text-align: right;
+  border-right: .5vh solid rgb(31, 0, 27);
+}
+.logo {
+  text-align: center;
+  padding-top: 15vh;
+  padding-right: 170px;
+  padding-left: 45px;
+  font-size: 150px;
+  font-family:  papyrus, Arial, Tahoma, Serif;
+  opacity: .2;
+  font-weight: bold;
+  transform: rotate(-45deg);
+}
+.score {
+  animation: glow 1s ease-in-out infinite alternate;
+  color:rgb(59, 50, 59)
+}
+@-webkit-keyframes glow {
+  from {
+    text-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #e60073, 0 0 40px #e60073, 0 0 50px #e60073, 0 0 60px #e60073, 0 0 70px #e60073;
+  }
+  
+  to {
+    text-shadow: 0 0 20px #fff, 0 0 30px #ff4da6, 0 0 40px #ff4da6, 0 0 50px #ff4da6, 0 0 60px #ff4da6, 0 0 70px #ff4da6, 0 0 80px #ff4da6;
+  }
+}
+
+  </style>
+  <title>Document</title>
+</head>
+<div class=bg1>
+<body>
+<div class="bg"> 
+  <!-- <video id="bgVideo" controls preload="true" autoplay loop muted>
+    <source src="grid_bg.mp4" type="video/mp4" >
+  </video> -->
+  <audio autoplay  id="audioplayer" loop="loop" type="audio/mpeg">
+    <source src="music.mp3" type="audio/mpeg">
+  </audio>
+  <div class=bg_score>
+  <div class="score">
+    <div class="score1" id="player-score">0</div>
+    <div class="score1" id="computer-score">0</div>
+  </div>
+  </div>
+  <div class="logo">PONG</div>
+  <div class="ball" id="ball"></div>
+  <div class="paddle left" id="player-paddle"></div>
+  <div class="paddle right" id="computer-paddle"></div>
+  
+</div> 
+<script>
+// PADDLE-----------------------------------
+var SPEED = 0.017
+ let easy_vel = 0.001
+ let med_vel = 0.0099
+ let hard_vel = 0.1
+ window.onload = function Choice(elem) {
+  var content = document.getElementById("content");
+  if (elem.id =="easy"){
+     SPEED = easy_vel
+  }
+  else if (elem.id == "medium"){
+     SPEED = med_vel
+  }
+  else if (elem.id =="hard"){
+     SPEED = hard_vel
+  }
+  console.log(SPEED)
+}
+
+
+
+
+ class Paddle {
+  constructor(paddleElem) {
+    this.paddleElem = paddleElem
+    this.reset()
+  }
+
+  get position() {
+    return parseFloat(
+      getComputedStyle(this.paddleElem).getPropertyValue("--position")
+    )
+  }
+
+  set position(value) {
+    this.paddleElem.style.setProperty("--position", value)
+  }
+
+  rect() {
+    return this.paddleElem.getBoundingClientRect()
+  }
+
+  reset() {
+    this.position = 50
+  }
+
+  update(delta, ballHeight) {
+    this.position += SPEED * delta * (ballHeight - this.position) //moving computer paddle
+  }
+}
+// BALL------------------------------------------------------------------------------
+
+const INITIAL_VELOCITY = 0.05
+const VELOCITY_INCREASE = 0.00002
+
+ class Ball {
+  constructor(ballElem) {
+    this.ballElem = ballElem
+    this.reset()
+  }
+
+  get x() {
+    return parseFloat(getComputedStyle(this.ballElem).getPropertyValue("--x"))
+  }
+
+  set x(value) {
+    this.ballElem.style.setProperty("--x", value)
+  }
+
+  get y() {
+    return parseFloat(getComputedStyle(this.ballElem).getPropertyValue("--y"))
+  }
+
+  set y(value) {
+    this.ballElem.style.setProperty("--y", value)
+  }
+
+  rect() {
+    return this.ballElem.getBoundingClientRect()
+  }
+
+  reset() {
+    this.x = 50
+    this.y = 50
+    this.direction = { x: 0 }
+    while (
+      Math.abs(this.direction.x) <= 0.2 ||
+      Math.abs(this.direction.x) >= 0.9
+    ) {
+     const heading = randomNumberBetween(0, 2 * Math.PI) //generation a random direction in radians  
+      this.direction = { x: Math.cos(heading), y: Math.sin(heading) } //converting it to unit vector
+    }
+    this.velocity = INITIAL_VELOCITY
+  }
+
+  update(delta, paddleRects) {
+    this.x += this.direction.x * this.velocity * delta  //multiplying by delta to ensure the pause between frames(long/short) is matched
+    this.y += this.direction.y * this.velocity * delta
+    this.velocity += VELOCITY_INCREASE * delta
+    const rect = this.rect()
+
+    if (rect.bottom >= window.innerHeight || rect.top <= 0) {  //reaction of ball when it hits bottom and top screen
+      this.direction.y *= -1
+    }
+
+    if (paddleRects.some(r => isCollision(r, rect))) {
+      this.direction.x *= -1
+    }
+  }
+}
+
+function randomNumberBetween(min, max) {
+  return Math.random() * (max - min) + min  //make sure value is in our range
+}
+
+function isCollision(rect1, rect2) {
+  return (
+    rect1.left <= rect2.right &&
+    rect1.right >= rect2.left &&
+    rect1.top <= rect2.bottom &&
+    rect1.bottom >= rect2.top
+  )
+}
+const ball = new Ball(document.getElementById("ball"))
+const playerPaddle = new Paddle(document.getElementById("player-paddle"))
+const computerPaddle = new Paddle(document.getElementById("computer-paddle"))
+const playerScoreElem = document.getElementById("player-score")
+const computerScoreElem = document.getElementById("computer-score")
+
+let lastTime
+function update(time) {
+ if (lastTime != null) {
+    const delta = time - lastTime
+    ball.update(delta, [playerPaddle.rect(), computerPaddle.rect()])
+    computerPaddle.update(delta, ball.y)   //passing y position of ball
+    const hue = parseFloat(
+      getComputedStyle(document.documentElement).getPropertyValue("--hue")
+    )
+
+    document.documentElement.style.setProperty("--hue", hue + delta * 0.01)
+
+    if (isLose()) handleLose()
+  }
+
+  lastTime = time
+  window.requestAnimationFrame(update)
+}
+
+function isLose() {
+  const rect = ball.rect()
+  return rect.right >= window.innerWidth || rect.left <= 0
+}
+
+function handleLose() {
+  const rect = ball.rect()
+  if (rect.right >= window.innerWidth) {
+    playerScoreElem.textContent = parseInt(playerScoreElem.textContent) + 1
+  } else {
+    computerScoreElem.textContent = parseInt(computerScoreElem.textContent) + 1
+  }
+  ball.reset()
+  computerPaddle.reset()
+}
+
+document.addEventListener("mousemove", e => {
+  playerPaddle.position = (e.y / window.innerHeight) * 100   //converting to %value
+})
+
+window.requestAnimationFrame(update)
+
+
+</script>
+</body>
+</div>
+</html>
